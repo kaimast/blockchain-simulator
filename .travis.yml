@@ -1,0 +1,8 @@
+os: linux
+dist: bionic
+language: rust
+rust:
+    - nightly
+
+script:
+    - cargo test
