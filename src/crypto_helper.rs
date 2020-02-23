@@ -1,4 +1,3 @@
-use rsa;
 use rsa::PublicKey as PubKey;
 use rand::rngs::OsRng;
 

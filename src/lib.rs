@@ -18,22 +18,27 @@ mod crypto_helper;
 pub use crypto_helper::{PublicKey, AccountId, PrivateKey, generate_key_pair, to_account_id};
 
 pub struct Identity {
+    #[allow(dead_code)]
     public_key: PublicKey
 }
 
 pub struct Ledger<OpType: Serialize> {
+    #[allow(dead_code)]
     identities: Mutex<HashMap<AccountId, Identity>>,
+    #[allow(dead_code)]
     transactions: Mutex<LinkedList<Transaction<OpType>>>,
 }
 
-impl<Operation: Serialize> Ledger<Operation> {
-    pub fn new() -> Self {
+impl<Operation: Serialize> Default for Ledger<Operation> {
+    fn default() -> Self {
         let transactions = Mutex::new( LinkedList::new() );
         let identities = Mutex::new( HashMap::new() );
 
-        return Self{ identities, transactions };
+        Self{ identities, transactions }
     }
+}
 
+impl<Operation: Serialize> Ledger<Operation> {
     pub fn insert(&self, tx: Transaction<Operation>) {
      /*   if tx.op_type == OpType::CreateAccount {
             self.identity_mgr.create_account(&tx);
