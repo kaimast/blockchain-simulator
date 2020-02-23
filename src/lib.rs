@@ -56,10 +56,7 @@ impl<Operation: Serialize> Ledger<Operation> {
 mod tests {
     use crate::{generate_key_pair, to_account_id, Transaction, Ledger};
 
-    use crate::protocol::Message;
-
     use serde::Serialize;
-    use bytes::Bytes;
 
     #[ derive(Serialize) ]
     enum TestOperation {
@@ -68,7 +65,7 @@ mod tests {
 
     #[test]
     fn size() {
-        let ledger = Ledger::new();
+        let ledger = Ledger::default();
 
         assert_eq!(ledger.size(), 0);
 
