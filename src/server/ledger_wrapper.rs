@@ -23,7 +23,7 @@ pub struct LedgerWrapper<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'
 
 impl<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> LedgerWrapper<Operation> {
     pub fn new(throughput: u32, latency_ms: u32) -> Self {
-        let ledger = Arc::new( Ledger::new() );
+        let ledger = Arc::new( Ledger::default() );
         let peers = Mutex::new( HashMap::new() );
 
         let min_interval = Duration::from_millis((1000/throughput).into());
