@@ -10,12 +10,23 @@ use tokio::net::TcpListener;
 
 use tokio::{spawn};
 
-use std::net::{ToSocketAddrs};
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use log::{info,error};
 
 use serde::{Serialize};
 use serde::de::{DeserializeOwned};
+
+use crate::DEFAULT_BLOCKCHAIN_PORT;
+
+fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
+    if addr_str.contains(':') {
+        return addr_str.to_socket_addrs().unwrap().next().unwrap();
+    } else {
+        let addr_str2 = format!("{}:{}", addr_str, default_port);
+        return addr_str2.to_socket_addrs().unwrap().next().unwrap();
+    }
+}
 
 pub async fn main_thread<Operation:
     Send+Sync+Clone+Serialize+DeserializeOwned+'static> () {
@@ -52,11 +63,9 @@ pub async fn main_thread<Operation:
 
     let latency: u32 = arg_matches.value_of("latency").unwrap().parse::<u32>().expect("Failed to parse command line argument");
 
-    let host = arg_matches.value_of("listen").unwrap();
-    let addr_str = format!("{}:8080", host);
-    let addr = addr_str.to_socket_addrs().unwrap().next().unwrap();
-
-    info!("Listening for connections on {}", addr_str);
+    let addr_str = arg_matches.value_of("listen").unwrap();
+    let addr = parse_address(addr_str, DEFAULT_BLOCKCHAIN_PORT);
+    info!("Listening for connections on {:?}", addr);
 
     let ledger = Arc::new( LedgerWrapper::<Operation>::new(throughput, latency) );
     let mut listener = TcpListener::bind(&addr).await.expect("Failed to bind socket!");

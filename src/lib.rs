@@ -14,6 +14,8 @@ pub use server::main_thread;
 
 use serde::{Serialize};
 
+pub const DEFAULT_BLOCKCHAIN_PORT: u16 = 8080;
+
 mod crypto_helper;
 pub use crypto_helper::{PublicKey, AccountId, PrivateKey, generate_key_pair, to_account_id};
 
