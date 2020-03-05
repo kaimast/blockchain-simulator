@@ -1,7 +1,7 @@
 pub mod protocol;
 
 mod transactions;
-pub use transactions::Transaction;
+pub use transactions::*;
 
 use std::sync::{Mutex};
 use std::collections::{LinkedList, HashMap};

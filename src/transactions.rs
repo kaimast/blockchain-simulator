@@ -9,7 +9,7 @@ use rsa::hash::Hashes;
 use rsa::padding::PaddingScheme;
 
 #[ derive(Serialize, Deserialize, Clone) ]
-enum TxPayload<OpType: Serialize> {
+pub enum TxPayload<OpType: Serialize> {
     CreateAccount { public_key: PublicKey },
     Operation { operation: OpType }
 }
@@ -51,5 +51,9 @@ impl<Operation: Serialize> Transaction<Operation> {
 
     pub fn get_source(&self) -> &AccountId {
         return &self.source;
+    }
+
+    pub fn get_payload(&self) -> &TxPayload<Operation> {
+        return &self.payload;
     }
 }
