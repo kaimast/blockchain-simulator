@@ -17,7 +17,6 @@ digest = { version="0.8" }
 rsa = { version="0.2", features=["serde1"] }
 bytes = { version="0.5", features=["serde"] }
 sha2 = { version="0.8" }
-quote = "=1.0.2" #TODO remove once quote is fixed
 
 [lib]
 name = "blockchain_simulator"
