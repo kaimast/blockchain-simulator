@@ -1,6 +1,6 @@
 mod connection;
 use connection::PeerConnection;
-pub use connection::Callback;
+pub use connection::{Callback, NullCallback};
 
 mod ledger_wrapper;
 use ledger_wrapper::LedgerWrapper;
