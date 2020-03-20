@@ -20,23 +20,39 @@ use log::{info, error};
 
 use crate::server::ledger_wrapper::LedgerWrapper;
 use crate::protocol::Message;
+use crate::transactions::Transaction;
 
 pub type PeerReadSocket = FramedRead<ReadHalf<TcpStream>, LengthDelimitedCodec>;
 pub type PeerWriteSocket = FramedWrite<WriteHalf<TcpStream>, LengthDelimitedCodec>;
 
-pub struct PeerConnection<Operation: Clone+Sync+Send+Serialize+DeserializeOwned+'static> {
-    identifier: u32,
-    ledger: Arc<LedgerWrapper<Operation>>,
-    write_framed: FMutex<PeerWriteSocket>
+pub trait OpTrait = Clone+Sync+Send+Serialize+DeserializeOwned+'static;
+
+pub trait Callback<Operation: OpTrait>: Sync+Send {
+    fn notify_new_transaction(&self, tx: &Transaction<Operation>);
 }
 
-impl<Operation: Clone+Sync+Send+Serialize+DeserializeOwned+'static> PeerConnection<Operation> {   pub fn new(identifier: u32, ledger: Arc<LedgerWrapper<Operation>>, socket: TcpStream) -> (Self, PeerReadSocket) {
+/// Callback that does not do anything
+pub struct NullCallback{}
+
+impl<Operation: OpTrait> Callback<Operation> for NullCallback {
+    fn notify_new_transaction(&self, _: &Transaction<Operation>) {}
+}
+
+pub struct PeerConnection<Operation: OpTrait> {
+    identifier: u32,
+    ledger: Arc<LedgerWrapper<Operation>>,
+    write_framed: FMutex<PeerWriteSocket>,
+    callback: Arc<dyn Callback<Operation>>
+}
+
+impl<Operation: OpTrait> PeerConnection<Operation> {
+    pub fn new(identifier: u32, ledger: Arc<LedgerWrapper<Operation>>, callback: Arc<dyn Callback<Operation>>, socket: TcpStream) -> (Self, PeerReadSocket) {
         let (read_socket, write_socket) = split(socket);
 
         let read_framed = FramedRead::new(read_socket, LengthDelimitedCodec::new());
         let write_framed = FMutex::new(FramedWrite::new(write_socket, LengthDelimitedCodec::new()));
 
-        return (Self{identifier, ledger, write_framed}, read_framed);
+        (Self{identifier, callback, ledger, write_framed}, read_framed)
     }
 
     pub async fn run(&self, mut read_framed: PeerReadSocket) {
@@ -60,8 +76,11 @@ impl<Operation: Clone+Sync+Send+Serialize+DeserializeOwned+'static> PeerConnecti
         let msg = bincode::deserialize(&data).unwrap();
 
         match msg {
-            Message::LedgerUpdate{transaction: _} => { panic!("Should not get ledger update!"); },
+            Message::LedgerUpdate{..} => {
+                panic!("The server should not get ledger update!");
+            }
             Message::TransactionRequest{transaction} => {
+                self.callback.notify_new_transaction(&transaction);
                 self.ledger.insert(transaction).await;
             }
         }
@@ -71,7 +90,7 @@ impl<Operation: Clone+Sync+Send+Serialize+DeserializeOwned+'static> PeerConnecti
         let data = bincode::serialize(msg).expect("Failed to serialize data");
         let mut framed = self.write_framed.lock().await;
         let result = framed.send(data.into()).await;
-        
+
         match result {
             Ok(()) => {},
             Err(e) => { error!("Failed to send data to peer: {}", e); }

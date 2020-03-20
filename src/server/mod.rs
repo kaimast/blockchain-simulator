@@ -14,9 +14,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use log::{info,error};
 
-use serde::{Serialize};
-use serde::de::{DeserializeOwned};
-
+use crate::server::connection::{OpTrait, Callback};
 use crate::DEFAULT_BLOCKCHAIN_PORT;
 
 fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
@@ -28,8 +26,7 @@ fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
     }
 }
 
-pub async fn main_thread<Operation:
-    Send+Sync+Clone+Serialize+DeserializeOwned+'static> () {
+pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operation>>) {
     let arg_matches = App::new("blockchain-sim")
         .author("Kai Mast <kaimast@cs.cornell.edu>")
         .version("0.1")
@@ -79,7 +76,7 @@ pub async fn main_thread<Operation:
                 let id = next_id;
                 next_id += 1;
  
-                let (c, read_socket) = PeerConnection::new(id, ledger.clone(), socket);
+                let (c, read_socket) = PeerConnection::new(id, ledger.clone(), callback.clone(), socket);
 
                 let conn = Arc::new(c);
                 ledger.register_peer(id, conn.clone());
