@@ -9,7 +9,6 @@ use tokio_util::codec::length_delimited::LengthDelimitedCodec;
 use futures::stream::StreamExt;
 use futures::sink::SinkExt;
 
-use bincode;
 use serde::{Serialize};
 use serde::de::{DeserializeOwned};
 
@@ -69,7 +68,7 @@ impl<Operation: OpTrait> PeerConnection<Operation> {
         }
 
         info!("Peer {} disconnected from blockchain-sim", self.identifier);
-        self.ledger.unregister_peer(&self.identifier);
+        self.ledger.unregister_peer(self.identifier);
     }
 
     pub async fn handle_message(&self, data: Bytes) {

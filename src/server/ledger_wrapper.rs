@@ -38,8 +38,8 @@ impl<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> LedgerWrappe
         self.peers.lock().unwrap().insert(identifier, peer);
     }
 
-    pub fn unregister_peer(&self, identifier: &u32) {
-        self.peers.lock().unwrap().remove(identifier);
+    pub fn unregister_peer(&self, identifier: u32) {
+        self.peers.lock().unwrap().remove(&identifier);
     }
 
     pub async fn insert(&self, transaction: Transaction<Operation>) {
@@ -56,7 +56,7 @@ impl<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> LedgerWrappe
         }
 
         let ledger = self.ledger.clone();
-        let latency = self.latency.clone();
+        let latency = self.latency;
         let peers = self.peers.lock().unwrap().clone();
 
         spawn(async move {
@@ -70,7 +70,7 @@ impl<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> LedgerWrappe
             let mut futures = Vec::new();
 
             // broadcast
-            for (_, peer) in &peers {
+            for peer in peers.values() {
                 futures.push(peer.send(&msg));
             }
 

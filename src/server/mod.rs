@@ -1,5 +1,6 @@
 mod connection;
 use connection::PeerConnection;
+pub use connection::Callback;
 
 mod ledger_wrapper;
 use ledger_wrapper::LedgerWrapper;
@@ -14,7 +15,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use log::{info,error};
 
-use crate::server::connection::{OpTrait, Callback};
+use crate::server::connection::{OpTrait};
 use crate::DEFAULT_BLOCKCHAIN_PORT;
 
 fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {

@@ -9,10 +9,7 @@ use std::sync::{Mutex};
 use std::collections::{LinkedList, HashMap};
 
 #[ cfg(feature="server") ]
-mod server;
-
-#[ cfg(feature="server") ]
-pub use server::main_thread;
+pub mod server;
 
 use serde::{Serialize};
 
