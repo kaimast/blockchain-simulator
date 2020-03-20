@@ -50,10 +50,14 @@ impl<Operation: Serialize> Transaction<Operation> {
     }
 
     pub fn get_source(&self) -> &AccountId {
-        return &self.source;
+        &self.source
     }
 
     pub fn get_payload(&self) -> &TxPayload<Operation> {
-        return &self.payload;
+        &self.payload
+    }
+
+    pub fn into_payload(self) -> TxPayload<Operation> {
+        self.payload
     }
 }
