@@ -5,15 +5,13 @@ use std::collections::{HashMap};
 use tokio::spawn;
 use tokio::time::delay_for;
 use tokio::sync::Mutex as FMutex;
-use serde::{Serialize};
-use serde::de::{DeserializeOwned};
 
 use crate::protocol::Message;
-use crate::server::connection::PeerConnection;
+use crate::server::connection::{PeerConnection, OpTrait};
 use crate::Ledger;
 use crate::transactions::Transaction;
 
-pub struct LedgerWrapper<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> {
+pub struct LedgerWrapper<Operation: OpTrait> {
     ledger: Arc<Ledger<Operation>>,
     peers: Mutex<HashMap<u32, Arc<PeerConnection<Operation>>>>,
     min_interval: Duration,
@@ -21,7 +19,7 @@ pub struct LedgerWrapper<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'
     last_tx : FMutex<Instant>
 }
 
-impl<Operation: Clone+Send+Sync+Serialize+DeserializeOwned+'static> LedgerWrapper<Operation> {
+impl<Operation: OpTrait> LedgerWrapper<Operation> {
     pub fn new(throughput: u32, latency_ms: u32) -> Self {
         let ledger = Arc::new( Ledger::default() );
         let peers = Mutex::new( HashMap::new() );

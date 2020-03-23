@@ -1,6 +1,7 @@
 use crate::crypto_helper::{AccountId, PublicKey, PrivateKey, to_account_id};
 use serde::{Serialize, Deserialize};
 use bytes::Bytes;
+use std::fmt::Debug;
 
 use sha2::Sha512;
 use digest::Digest;
@@ -8,20 +9,20 @@ use digest::Digest;
 use rsa::hash::Hashes;
 use rsa::padding::PaddingScheme;
 
-#[ derive(Serialize, Deserialize, Clone) ]
-pub enum TxPayload<OpType: Serialize> {
+#[ derive(Serialize, Deserialize, Clone, Debug) ]
+pub enum TxPayload<OpType: Serialize+Debug> {
     CreateAccount { public_key: PublicKey },
     Operation { operation: OpType }
 }
 
-#[ derive(Serialize, Deserialize, Clone) ]
-pub struct Transaction<OpType: Serialize> {
+#[ derive(Serialize, Deserialize, Clone, Debug) ]
+pub struct Transaction<OpType: Serialize+Debug> {
     source: AccountId,
     payload: TxPayload<OpType>,
     signature: Bytes
 }
 
-impl<Operation: Serialize> Transaction<Operation> {
+impl<Operation: Serialize+Debug> Transaction<Operation> {
     pub fn new_create_account(public_key: PublicKey, sign_key: &PrivateKey) -> Self {
         let source = to_account_id(&public_key);
         let payload = TxPayload::CreateAccount{public_key};

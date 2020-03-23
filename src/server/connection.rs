@@ -15,18 +15,24 @@ use serde::de::{DeserializeOwned};
 use bytes::Bytes;
 
 use std::sync::Arc;
+use std::fmt::Debug;
+
 use log::{info, error};
 
 use crate::server::ledger_wrapper::LedgerWrapper;
 use crate::protocol::Message;
 use crate::transactions::Transaction;
 
+use log::*;
+
 pub type PeerReadSocket = FramedRead<ReadHalf<TcpStream>, LengthDelimitedCodec>;
 pub type PeerWriteSocket = FramedWrite<WriteHalf<TcpStream>, LengthDelimitedCodec>;
 
-pub trait OpTrait = Clone+Sync+Send+Serialize+DeserializeOwned+'static;
+pub trait OpTrait = Clone+Sync+Send+Serialize+Debug+DeserializeOwned+'static;
 
 pub trait Callback<Operation: OpTrait>: Sync+Send {
+    fn validate_transaction(&self, tx: &Transaction<Operation>) -> bool;
+
     fn notify_new_transaction(&self, tx: &Transaction<Operation>);
 }
 
@@ -34,6 +40,8 @@ pub trait Callback<Operation: OpTrait>: Sync+Send {
 pub struct NullCallback{}
 
 impl<Operation: OpTrait> Callback<Operation> for NullCallback {
+    fn validate_transaction(&self, _: &Transaction<Operation>) -> bool { true }
+
     fn notify_new_transaction(&self, _: &Transaction<Operation>) {}
 }
 
@@ -79,8 +87,12 @@ impl<Operation: OpTrait> PeerConnection<Operation> {
                 panic!("The server should not get ledger update!");
             }
             Message::TransactionRequest{transaction} => {
-                self.callback.notify_new_transaction(&transaction);
-                self.ledger.insert(transaction).await;
+                if self.callback.validate_transaction(&transaction) {
+                    self.callback.notify_new_transaction(&transaction);
+                    self.ledger.insert(transaction).await;
+                } else {
+                    debug!("Discarded transaction because validation failed: {:?}", transaction);
+                }
             }
         }
     }

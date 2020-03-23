@@ -5,6 +5,7 @@ pub mod protocol;
 mod transactions;
 pub use transactions::*;
 
+use std::fmt::Debug;
 use std::sync::{Mutex};
 use std::collections::{LinkedList, HashMap};
 
@@ -23,14 +24,14 @@ pub struct Identity {
     public_key: PublicKey
 }
 
-pub struct Ledger<OpType: Serialize> {
+pub struct Ledger<OpType: Serialize+Debug> {
     #[allow(dead_code)]
     identities: Mutex<HashMap<AccountId, Identity>>,
     #[allow(dead_code)]
     transactions: Mutex<LinkedList<Transaction<OpType>>>,
 }
 
-impl<Operation: Serialize> Default for Ledger<Operation> {
+impl<Operation: Serialize+Debug> Default for Ledger<Operation> {
     fn default() -> Self {
         let transactions = Mutex::new( LinkedList::new() );
         let identities = Mutex::new( HashMap::new() );
@@ -39,7 +40,7 @@ impl<Operation: Serialize> Default for Ledger<Operation> {
     }
 }
 
-impl<Operation: Serialize> Ledger<Operation> {
+impl<Operation: Serialize+Debug> Ledger<Operation> {
     pub fn insert(&self, tx: Transaction<Operation>) {
      /*   if tx.op_type == OpType::CreateAccount {
             self.identity_mgr.create_account(&tx);
@@ -59,7 +60,7 @@ mod tests {
 
     use serde::Serialize;
 
-    #[ derive(Serialize) ]
+    #[ derive(Serialize, Debug) ]
     enum TestOperation {
         Empty{}
     }
