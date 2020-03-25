@@ -8,11 +8,12 @@ use ledger_wrapper::LedgerWrapper;
 use clap::{Arg, App};
 
 use tokio::net::TcpListener;
-
 use tokio::{spawn};
 
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
+use std::time::Duration;
+
 use log::{info,error};
 
 use crate::server::connection::{OpTrait};
@@ -51,6 +52,14 @@ pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operatio
                 .default_value("100")
                 .help("The transaction confirmation delay (in ms)")
             )
+         .arg(Arg::with_name("epoch_length")
+                .takes_value(true)
+                .long("epoch_length")
+                .default_value("60")
+                .help("Length of an epoch (in s)")
+            )
+
+
         .get_matches();
 
     let throughput: u32 = arg_matches.value_of("throughput").unwrap().parse::<u32>().expect("Failed to parse command line argument");
@@ -68,6 +77,18 @@ pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operatio
     let ledger = Arc::new( LedgerWrapper::<Operation>::new(throughput, latency) );
     let mut listener = TcpListener::bind(&addr).await.expect("Failed to bind socket!");
 
+    let l2 = ledger.clone();
+
+    let elength_arg = arg_matches.value_of("epoch_length").unwrap().parse::<u64>().unwrap();
+    let epoch_length = Duration::from_secs(elength_arg);
+
+    tokio::spawn(async move {
+        loop {
+            tokio::time::delay_for(epoch_length).await;
+            l2.start_new_epoch();
+        }
+    });
+
     let mut next_id: u32 = 1;
 
     loop {
@@ -76,7 +97,7 @@ pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operatio
                 info!("Got new connection from {}", addr);
                 let id = next_id;
                 next_id += 1;
- 
+
                 let (c, read_socket) = PeerConnection::new(id, ledger.clone(), callback.clone(), socket);
 
                 let conn = Arc::new(c);

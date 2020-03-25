@@ -83,9 +83,6 @@ impl<Operation: OpTrait> PeerConnection<Operation> {
         let msg = bincode::deserialize(&data).unwrap();
 
         match msg {
-            Message::LedgerUpdate{..} => {
-                panic!("The server should not get ledger update!");
-            }
             Message::TransactionRequest{transaction} => {
                 if self.callback.validate_transaction(&transaction) {
                     self.callback.notify_new_transaction(&transaction);
@@ -93,6 +90,9 @@ impl<Operation: OpTrait> PeerConnection<Operation> {
                 } else {
                     debug!("Discarded transaction because validation failed: {:?}", transaction);
                 }
+            }
+            _ => {
+                panic!("Server got unexpected message: {:?}", msg);
             }
         }
     }

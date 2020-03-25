@@ -11,6 +11,7 @@ use crate::server::connection::{PeerConnection, OpTrait};
 use crate::Ledger;
 use crate::transactions::Transaction;
 
+/// This adds some server-side functionality to the ledger class
 pub struct LedgerWrapper<Operation: OpTrait> {
     ledger: Arc<Ledger<Operation>>,
     peers: Mutex<HashMap<u32, Arc<PeerConnection<Operation>>>>,
@@ -38,6 +39,27 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
 
     pub fn unregister_peer(&self, identifier: u32) {
         self.peers.lock().unwrap().remove(&identifier);
+    }
+
+    pub fn start_new_epoch(&self) {
+        // we're not actually modifying the ledger, just sending a message to peers
+        let peers = self.peers.lock().unwrap().clone();
+
+        spawn(async move {
+            trace!("Starting new epoch");
+
+            let msg = Message::NewEpochStarted{};
+            let mut futures = Vec::new();
+
+            // broadcast
+            for peer in peers.values() {
+                futures.push(peer.send(&msg));
+            }
+
+            for future in futures.drain(..) {
+                future.await;
+            }
+        });
     }
 
     pub async fn insert(&self, transaction: Transaction<Operation>) {
