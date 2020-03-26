@@ -2,11 +2,13 @@ use log::trace;
 use std::sync::{Arc,Mutex};
 use std::time::{Duration,Instant};
 use std::collections::{HashMap};
+use std::sync::atomic::{AtomicU32, Ordering};
+
 use tokio::spawn;
 use tokio::time::delay_for;
 use tokio::sync::Mutex as FMutex;
 
-use crate::protocol::Message;
+use crate::protocol::{Message};
 use crate::server::connection::{PeerConnection, OpTrait};
 use crate::Ledger;
 use crate::transactions::Transaction;
@@ -17,7 +19,8 @@ pub struct LedgerWrapper<Operation: OpTrait> {
     peers: Mutex<HashMap<u32, Arc<PeerConnection<Operation>>>>,
     min_interval: Duration,
     latency : Duration,
-    last_tx : FMutex<Instant>
+    last_tx : FMutex<Instant>,
+    next_epoch_id: AtomicU32
 }
 
 impl<Operation: OpTrait> LedgerWrapper<Operation> {
@@ -30,7 +33,9 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
 
         let last_tx = FMutex::new( Instant::now() );
 
-        return Self{ ledger, peers, min_interval, latency, last_tx };
+        let next_epoch_id = AtomicU32::new(1);
+
+        return Self{ ledger, peers, min_interval, latency, last_tx, next_epoch_id };
     }
 
     pub fn register_peer(&self, identifier: u32, peer: Arc<PeerConnection<Operation>>) {
@@ -45,10 +50,12 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
         // we're not actually modifying the ledger, just sending a message to peers
         let peers = self.peers.lock().unwrap().clone();
 
+        let identifier = self.next_epoch_id.fetch_add(1, Ordering::SeqCst);
+
         spawn(async move {
             trace!("Starting new epoch");
 
-            let msg = Message::NewEpochStarted{};
+            let msg = Message::NewEpochStarted{ identifier };
             let mut futures = Vec::new();
 
             // broadcast
