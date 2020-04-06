@@ -8,7 +8,7 @@ pub type EpochId = u32;
 pub enum Message<OpType: Serialize+Debug> {
     // A new epoch has started
     // (e.g. a new key block was mined)
-    NewEpochStarted { identifier: EpochId },
+    NewEpochStarted { identifier: EpochId, timestamp: i64 },
 
     // A new transaction was added to the chain
     LedgerUpdate { transaction: Transaction<OpType> },

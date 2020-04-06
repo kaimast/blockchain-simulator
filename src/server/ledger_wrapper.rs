@@ -1,4 +1,5 @@
-use log::trace;
+use log::*;
+
 use std::sync::{Arc,Mutex};
 use std::time::{Duration,Instant};
 use std::collections::{HashMap};
@@ -53,9 +54,12 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
         let identifier = self.next_epoch_id.fetch_add(1, Ordering::SeqCst);
 
         spawn(async move {
-            trace!("Starting new epoch");
+            let now = chrono::offset::Utc::now();
+            let timestamp = now.timestamp();
 
-            let msg = Message::NewEpochStarted{ identifier };
+            info!("Starting new blockchain epoch (id={} timestamp={}", identifier, timestamp);
+
+            let msg = Message::NewEpochStarted{ identifier, timestamp };
             let mut futures = Vec::new();
 
             // broadcast
