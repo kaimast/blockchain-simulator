@@ -53,12 +53,14 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
 
         let identifier = self.next_epoch_id.fetch_add(1, Ordering::SeqCst);
 
+        let now = chrono::offset::Utc::now();
+        let timestamp = now.timestamp();
+
+        info!("Starting new blockchain epoch (id={} timestamp={}", identifier, timestamp);
+
+        self.ledger.notify_new_epoch(identifier, timestamp);
+
         spawn(async move {
-            let now = chrono::offset::Utc::now();
-            let timestamp = now.timestamp();
-
-            info!("Starting new blockchain epoch (id={} timestamp={}", identifier, timestamp);
-
             let msg = Message::NewEpochStarted{ identifier, timestamp };
             let mut futures = Vec::new();
 

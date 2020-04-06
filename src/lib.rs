@@ -1,13 +1,14 @@
 #![ feature(trait_alias) ]
 
 pub mod protocol;
+use protocol::EpochId;
 
 mod transactions;
 pub use transactions::*;
 
 use std::fmt::Debug;
 use std::sync::{Mutex};
-use std::collections::{LinkedList, HashMap};
+use std::collections::{LinkedList, HashMap, BTreeMap};
 
 #[ cfg(feature="server") ]
 pub mod server;
@@ -24,19 +25,27 @@ pub struct Identity {
     public_key: PublicKey
 }
 
+struct EpochInfo {
+    #[ allow(dead_code) ]
+    timestamp: i64
+}
+
 pub struct Ledger<OpType: Serialize+Debug> {
     #[allow(dead_code)]
     identities: Mutex<HashMap<AccountId, Identity>>,
     #[allow(dead_code)]
     transactions: Mutex<LinkedList<Transaction<OpType>>>,
+
+    epochs: Mutex<BTreeMap<EpochId, EpochInfo>>
 }
 
 impl<Operation: Serialize+Debug> Default for Ledger<Operation> {
     fn default() -> Self {
-        let transactions = Mutex::new( LinkedList::new() );
-        let identities = Mutex::new( HashMap::new() );
+        let transactions = Mutex::new( LinkedList::default() );
+        let identities = Mutex::new( HashMap::default() );
+        let epochs = Mutex::new( BTreeMap::default() );
 
-        Self{ identities, transactions }
+        Self{ identities, transactions, epochs }
     }
 }
 
@@ -51,6 +60,25 @@ impl<Operation: Serialize+Debug> Ledger<Operation> {
 
     pub fn size(&self) -> usize {
         return self.transactions.lock().unwrap().len();
+    }
+
+    pub fn notify_new_epoch(&self, identifier: EpochId, timestamp: i64) {
+        let mut epochs = self.epochs.lock().unwrap();
+        epochs.insert(identifier, EpochInfo{ timestamp });
+    }
+
+    pub fn has_gaps(&self) -> bool {
+        let epochs = self.epochs.lock().unwrap();
+
+        for (pos, key) in epochs.keys().enumerate() {
+            let expected = (pos+1) as EpochId;
+
+            if expected != *key {
+                return true
+            }
+        }
+
+        false
     }
 }
 
