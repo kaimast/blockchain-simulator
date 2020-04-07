@@ -116,7 +116,7 @@ impl<OpType: OpTrait> Ledger<OpType> {
         false
     }
 
-    pub fn synchornize_epoch(&self, identifier: EpochId, epoch: Epoch<OpType>) {
+    pub fn synchronize_epoch(&self, identifier: EpochId, epoch: Epoch<OpType>) {
         let mut epochs = self.epochs.write().unwrap();
         let result = epochs.insert(identifier, Mutex::new(epoch));
 
@@ -152,5 +152,38 @@ mod tests {
 
         let epoch = ledger.get_epoch(1);
         assert_eq!(epoch.size(), 1);
+    }
+
+    #[test]
+    fn has_gaps() {
+        let ledger = Ledger::<TestOperation>::default();
+        ledger.create_new_epoch(2, 5);
+
+        assert_eq!(true, ledger.has_gaps());
+
+        ledger.create_new_epoch(1, 1);
+
+        assert_eq!(false, ledger.has_gaps());
+    }
+
+    #[test]
+    fn sync_epochs() {
+        let ledger = Ledger::default();
+        let copy = Ledger::default();
+
+        let (skey, pkey) = generate_key_pair();
+        let account = to_account_id(&pkey);
+
+        let tx = Transaction::new(account, TestOperation::Empty{}, &skey);
+        ledger.create_new_epoch(1, 5);
+        ledger.insert(tx);
+
+        let epoch = ledger.get_epoch(1);
+        copy.synchronize_epoch(1, epoch);
+
+        let ecopy = copy.get_epoch(1);
+ 
+        assert_eq!(copy.num_epochs(), 1);
+        assert_eq!(ecopy.size(), 1);
     }
 }
