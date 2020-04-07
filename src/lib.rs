@@ -42,6 +42,8 @@ impl<OpType: OpTrait> Epoch<OpType> {
     pub fn size(&self) -> usize {
         self.transactions.len()
     }
+
+    pub fn get_timestamp(&self) -> i64 { self.timestamp }
 }
 
 type EpochMap<OpType> = BTreeMap< EpochId, Mutex<Epoch<OpType>> >;
@@ -77,6 +79,14 @@ impl<OpType: OpTrait> Ledger<OpType> {
 
         let mut lock = epoch.lock().unwrap();
         lock.transactions.push(tx);
+    }
+
+    pub fn get_epoch_timestamp(&self, identifier: EpochId) -> i64 {
+        let epochs = self.epochs.read().unwrap();
+        let epoch = epochs.get(&identifier).unwrap();
+        
+        let lock = epoch.lock().unwrap();
+        lock.get_timestamp()
     }
 
     // Returns a copy of an epoch
