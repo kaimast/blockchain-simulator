@@ -1,11 +1,16 @@
 use crate::transactions::Transaction;
+use crate::{Epoch, OpTrait};
+
 use serde::{Serialize, Deserialize};
 use std::fmt::Debug;
 
 pub type EpochId = u32;
 
 #[ derive(Serialize, Deserialize, Debug, Clone) ]
-pub enum Message<OpType: Serialize+Debug> {
+pub enum Message<OpType: OpTrait> {
+    // Send an entire epoch. Only done during initial connection setup
+    SyncEpoch { epoch: Epoch<OpType> },
+
     // A new epoch has started
     // (e.g. a new key block was mined)
     NewEpochStarted { identifier: EpochId, timestamp: i64 },

@@ -14,10 +14,12 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
 
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
 use log::{info,error};
 
-use crate::server::connection::{OpTrait};
-use crate::DEFAULT_BLOCKCHAIN_PORT;
+use crate::{DEFAULT_BLOCKCHAIN_PORT, OpTrait};
 
 fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
     if addr_str.contains(':') {
@@ -28,7 +30,7 @@ fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
     }
 }
 
-pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operation>>) {
+pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: Arc<dyn Callback<OpType>>) {
     let arg_matches = App::new("blockchain-sim")
         .author("Kai Mast <kaimast@cs.cornell.edu>")
         .version("0.1")
@@ -74,7 +76,7 @@ pub async fn main_thread<Operation: OpTrait>(callback: Arc<dyn Callback<Operatio
     let addr = parse_address(addr_str, DEFAULT_BLOCKCHAIN_PORT);
     info!("Listening for connections on {:?}", addr);
 
-    let ledger = Arc::new( LedgerWrapper::<Operation>::new(throughput, latency) );
+    let ledger = Arc::new( LedgerWrapper::new(throughput, latency) );
     let mut listener = TcpListener::bind(&addr).await.expect("Failed to bind socket!");
 
     let l2 = ledger.clone();

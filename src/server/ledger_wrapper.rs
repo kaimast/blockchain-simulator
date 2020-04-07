@@ -9,22 +9,25 @@ use tokio::spawn;
 use tokio::time::delay_for;
 use tokio::sync::Mutex as FMutex;
 
-use crate::protocol::{Message};
-use crate::server::connection::{PeerConnection, OpTrait};
-use crate::Ledger;
+use crate::protocol::{EpochId, Message};
+use crate::server::connection::PeerConnection;
+use crate::{Ledger, OpTrait, Epoch};
 use crate::transactions::Transaction;
 
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
 /// This adds some server-side functionality to the ledger class
-pub struct LedgerWrapper<Operation: OpTrait> {
-    ledger: Arc<Ledger<Operation>>,
-    peers: Mutex<HashMap<u32, Arc<PeerConnection<Operation>>>>,
+pub struct LedgerWrapper<OpType: OpTrait> {
+    ledger: Arc<Ledger<OpType>>,
+    peers: Mutex<HashMap<u32, Arc<PeerConnection<OpType>>>>,
     min_interval: Duration,
     latency : Duration,
     last_tx : FMutex<Instant>,
     next_epoch_id: AtomicU32
 }
 
-impl<Operation: OpTrait> LedgerWrapper<Operation> {
+impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
     pub fn new(throughput: u32, latency_ms: u32) -> Self {
         let ledger = Arc::new( Ledger::default() );
         let peers = Mutex::new( HashMap::new() );
@@ -39,7 +42,7 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
         return Self{ ledger, peers, min_interval, latency, last_tx, next_epoch_id };
     }
 
-    pub fn register_peer(&self, identifier: u32, peer: Arc<PeerConnection<Operation>>) {
+    pub fn register_peer(&self, identifier: u32, peer: Arc<PeerConnection<OpType>>) {
         self.peers.lock().unwrap().insert(identifier, peer);
     }
 
@@ -47,8 +50,15 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
         self.peers.lock().unwrap().remove(&identifier);
     }
 
+    pub fn num_epochs(&self) -> usize {
+        self.ledger.num_epochs()
+    }
+
+    pub fn get_epoch(&self, identifier: EpochId) -> Epoch<OpType> {
+        self.ledger.get_epoch(identifier)
+    }
+
     pub fn start_new_epoch(&self) {
-        // we're not actually modifying the ledger, just sending a message to peers
         let peers = self.peers.lock().unwrap().clone();
 
         let identifier = self.next_epoch_id.fetch_add(1, Ordering::SeqCst);
@@ -58,7 +68,7 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
 
         info!("Starting new blockchain epoch (id={} timestamp={}", identifier, timestamp);
 
-        self.ledger.notify_new_epoch(identifier, timestamp);
+        self.ledger.create_new_epoch(identifier, timestamp);
 
         spawn(async move {
             let msg = Message::NewEpochStarted{ identifier, timestamp };
@@ -75,7 +85,7 @@ impl<Operation: OpTrait> LedgerWrapper<Operation> {
         });
     }
 
-    pub async fn insert(&self, transaction: Transaction<Operation>) {
+    pub async fn insert(&self, transaction: Transaction<OpType>) {
         {
             let mut last_tx = self.last_tx.lock().await;
             let now = Instant::now();

@@ -9,26 +9,24 @@ use tokio_util::codec::length_delimited::LengthDelimitedCodec;
 use futures::stream::StreamExt;
 use futures::sink::SinkExt;
 
-use serde::{Serialize};
-use serde::de::{DeserializeOwned};
-
 use bytes::Bytes;
 
 use std::sync::Arc;
-use std::fmt::Debug;
+
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use log::{info, error};
 
 use crate::server::ledger_wrapper::LedgerWrapper;
-use crate::protocol::Message;
+use crate::protocol::{Message, EpochId};
 use crate::transactions::Transaction;
+use crate::OpTrait;
 
 use log::*;
 
 pub type PeerReadSocket = FramedRead<ReadHalf<TcpStream>, LengthDelimitedCodec>;
 pub type PeerWriteSocket = FramedWrite<WriteHalf<TcpStream>, LengthDelimitedCodec>;
-
-pub trait OpTrait = Clone+Sync+Send+Serialize+Debug+DeserializeOwned+'static;
 
 pub trait Callback<Operation: OpTrait>: Sync+Send {
     fn validate_transaction(&self, tx: &Transaction<Operation>) -> bool;
@@ -52,7 +50,7 @@ pub struct PeerConnection<Operation: OpTrait> {
     callback: Arc<dyn Callback<Operation>>
 }
 
-impl<Operation: OpTrait> PeerConnection<Operation> {
+impl<Operation: OpTrait+Serialize+DeserializeOwned> PeerConnection<Operation> {
     pub fn new(identifier: u32, ledger: Arc<LedgerWrapper<Operation>>, callback: Arc<dyn Callback<Operation>>, socket: TcpStream) -> (Self, PeerReadSocket) {
         let (read_socket, write_socket) = split(socket);
 
@@ -63,6 +61,15 @@ impl<Operation: OpTrait> PeerConnection<Operation> {
     }
 
     pub async fn run(&self, mut read_framed: PeerReadSocket) {
+        // First send all previous transactions / epochs
+        let num_epochs = self.ledger.num_epochs();
+        for eid in 1..num_epochs+1 {
+            let epoch = self.ledger.get_epoch(eid as EpochId);
+            let msg = Message::SyncEpoch{ epoch };
+
+            self.send(&msg).await;
+        }
+
         while let Some(result) = read_framed.next().await {
             match result {
                 Ok(data) => {

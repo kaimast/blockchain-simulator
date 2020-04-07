@@ -10,13 +10,13 @@ use rsa::hash::Hashes;
 use rsa::padding::PaddingScheme;
 
 #[ derive(Serialize, Deserialize, Clone, Debug) ]
-pub enum TxPayload<OpType: Serialize+Debug> {
+pub enum TxPayload<OpType> {
     CreateAccount { public_key: PublicKey },
     Operation { operation: OpType }
 }
 
 #[ derive(Serialize, Deserialize, Clone, Debug) ]
-pub struct Transaction<OpType: Serialize+Debug> {
+pub struct Transaction<OpType> {
     source: AccountId,
     payload: TxPayload<OpType>,
     signature: Bytes
