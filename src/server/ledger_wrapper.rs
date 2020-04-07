@@ -66,7 +66,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
         let now = chrono::offset::Utc::now();
         let timestamp = now.timestamp();
 
-        info!("Starting new blockchain epoch (id={} timestamp={}", identifier, timestamp);
+        info!("Starting new blockchain epoch (id={} timestamp={})", identifier, timestamp);
 
         self.ledger.create_new_epoch(identifier, timestamp);
 

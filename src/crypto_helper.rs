@@ -8,14 +8,14 @@ pub type PublicKey = rsa::RSAPublicKey;
 pub type PrivateKey = rsa::RSAPrivateKey;
 
 // SHA-512 of the public key
-pub type AccountId = [u8; 8]; //GenericArray::<u8, 8>;
+pub type AccountId = u64;
 
 pub fn generate_key_pair() -> (PrivateKey, PublicKey) {
     let mut rng = OsRng;
     let private = PrivateKey::new(&mut rng, 2048).unwrap();
     let public = private.to_public_key();
 
-    return (private, public);
+    (private, public)
 }
 
 pub fn to_account_id(key: &PublicKey) -> AccountId {
@@ -27,11 +27,14 @@ pub fn to_account_id(key: &PublicKey) -> AccountId {
     hasher.input(&bytes);
 
     let output = hasher.result();
-    let mut result : AccountId = [0; 8];
+    let mut buffer: [u8; 8] = [0; 8];
 
+    //FIXME get rid of this
     for i in 0..8 {
-        result[i] = output[i];
+        buffer[i] = output[i];
     }
 
-    return result;
+    unsafe {
+        std::mem::transmute::<[u8; 8], u64>(buffer)
+    }
 }
