@@ -43,6 +43,10 @@ impl<OpType: OpTrait> Epoch<OpType> {
         self.transactions.len()
     }
 
+    pub fn get_transactions(&self) -> &Vec<Transaction<OpType>> {
+        &self.transactions
+    }
+
     pub fn get_timestamp(&self) -> i64 { self.timestamp }
 }
 
