@@ -9,7 +9,7 @@ pub type EpochId = u32;
 #[ derive(Serialize, Deserialize, Debug, Clone) ]
 pub enum Message<OpType: OpTrait> {
     // Send an entire epoch. Only done during initial connection setup
-    SyncEpoch { epoch: Epoch<OpType> },
+    SyncEpoch { identifier: EpochId, epoch: Epoch<OpType> },
 
     // A new epoch has started
     // (e.g. a new key block was mined)

@@ -115,6 +115,15 @@ impl<OpType: OpTrait> Ledger<OpType> {
 
         false
     }
+
+    pub fn synchornize_epoch(&self, identifier: EpochId, epoch: Epoch<OpType>) {
+        let mut epochs = self.epochs.write().unwrap();
+        let result = epochs.insert(identifier, Mutex::new(epoch));
+
+        if result.is_some() {
+            panic!("Epoch {} was created more than once", identifier);
+        }
+    }
 }
 
 #[cfg(test)]

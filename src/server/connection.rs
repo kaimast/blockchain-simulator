@@ -63,9 +63,10 @@ impl<Operation: OpTrait+Serialize+DeserializeOwned> PeerConnection<Operation> {
     pub async fn run(&self, mut read_framed: PeerReadSocket) {
         // First send all previous transactions / epochs
         let num_epochs = self.ledger.num_epochs();
-        for eid in 1..num_epochs+1 {
-            let epoch = self.ledger.get_epoch(eid as EpochId);
-            let msg = Message::SyncEpoch{ epoch };
+        for i in 1..num_epochs+1 {
+            let eid = i as EpochId;
+            let epoch = self.ledger.get_epoch(eid);
+            let msg = Message::SyncEpoch{ identifier: eid, epoch };
 
             self.send(&msg).await;
         }
