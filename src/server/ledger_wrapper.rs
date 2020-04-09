@@ -37,7 +37,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
 
         let last_tx = FMutex::new( Instant::now() );
 
-        let next_epoch_id = AtomicU32::new(1);
+        let next_epoch_id = AtomicU32::new(0);
 
         return Self{ ledger, peers, min_interval, latency, last_tx, next_epoch_id };
     }
