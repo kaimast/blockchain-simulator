@@ -120,7 +120,7 @@ impl<OpType: OpTrait> Ledger<OpType> {
         let epochs = self.epochs.read().unwrap();
 
         for (pos, key) in epochs.keys().enumerate() {
-            let expected = (pos+1) as EpochId;
+            let expected = pos as EpochId;
 
             if expected != *key {
                 return true
@@ -161,21 +161,21 @@ mod tests {
         let account = to_account_id(&pkey);
 
         let tx = Transaction::new(account, TestOperation::Empty{}, &skey);
-        ledger.create_new_epoch(1, 5);
+        ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
-        let epoch = ledger.get_epoch(1);
+        let epoch = ledger.get_epoch(0);
         assert_eq!(epoch.size(), 1);
     }
 
     #[test]
     fn has_gaps() {
         let ledger = Ledger::<TestOperation>::default();
-        ledger.create_new_epoch(2, 5);
+        ledger.create_new_epoch(1, 5);
 
         assert_eq!(true, ledger.has_gaps());
 
-        ledger.create_new_epoch(1, 1);
+        ledger.create_new_epoch(0, 1);
 
         assert_eq!(false, ledger.has_gaps());
     }
@@ -189,13 +189,13 @@ mod tests {
         let account = to_account_id(&pkey);
 
         let tx = Transaction::new(account, TestOperation::Empty{}, &skey);
-        ledger.create_new_epoch(1, 5);
+        ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
-        let epoch = ledger.get_epoch(1);
-        copy.synchronize_epoch(1, epoch);
+        let epoch = ledger.get_epoch(0);
+        copy.synchronize_epoch(0, epoch);
 
-        let ecopy = copy.get_epoch(1);
+        let ecopy = copy.get_epoch(0);
  
         assert_eq!(copy.num_epochs(), 1);
         assert_eq!(ecopy.size(), 1);
