@@ -19,7 +19,7 @@ use serde::de::DeserializeOwned;
 use log::{info, error};
 
 use crate::server::ledger_wrapper::LedgerWrapper;
-use crate::protocol::{Message, EpochId};
+use crate::protocol::Message;
 use crate::transactions::Transaction;
 use crate::OpTrait;
 
@@ -61,16 +61,6 @@ impl<Operation: OpTrait+Serialize+DeserializeOwned> PeerConnection<Operation> {
     }
 
     pub async fn run(&self, mut read_framed: PeerReadSocket) {
-        // First send all previous transactions / epochs
-        let num_epochs = self.ledger.num_epochs();
-        for i in 0..num_epochs {
-            let eid = i as EpochId;
-            let epoch = self.ledger.get_epoch(eid);
-            let msg = Message::SyncEpoch{ identifier: eid, epoch };
-
-            self.send(&msg).await;
-        }
-
         while let Some(result) = read_framed.next().await {
             match result {
                 Ok(data) => {
@@ -84,7 +74,7 @@ impl<Operation: OpTrait+Serialize+DeserializeOwned> PeerConnection<Operation> {
         }
 
         info!("Peer {} disconnected from blockchain-sim", self.identifier);
-        self.ledger.unregister_peer(self.identifier);
+        self.ledger.unregister_peer(self.identifier).await;
     }
 
     pub async fn handle_message(&self, data: Bytes) {

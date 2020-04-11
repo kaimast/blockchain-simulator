@@ -1,13 +1,11 @@
-use log::*;
-
-use std::sync::{Arc,Mutex};
+use std::sync::Arc;
 use std::time::{Duration,Instant};
 use std::collections::{HashMap};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tokio::spawn;
 use tokio::time::delay_for;
-use tokio::sync::Mutex as FMutex;
+use tokio::sync::Mutex;
 
 use crate::protocol::{EpochId, Message};
 use crate::server::connection::PeerConnection;
@@ -17,13 +15,15 @@ use crate::transactions::Transaction;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+use log::*;
+
 /// This adds some server-side functionality to the ledger class
 pub struct LedgerWrapper<OpType: OpTrait> {
     ledger: Arc<Ledger<OpType>>,
     peers: Mutex<HashMap<u32, Arc<PeerConnection<OpType>>>>,
     min_interval: Duration,
     latency : Duration,
-    last_tx : FMutex<Instant>,
+    last_tx : Mutex<Instant>,
     next_epoch_id: AtomicU32
 }
 
@@ -35,32 +35,45 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
         let min_interval = Duration::from_millis((1000/throughput).into());
         let latency = Duration::from_millis(latency_ms.into());
 
-        let last_tx = FMutex::new( Instant::now() );
+        let last_tx = Mutex::new( Instant::now() );
 
         let next_epoch_id = AtomicU32::new(0);
 
         return Self{ ledger, peers, min_interval, latency, last_tx, next_epoch_id };
     }
 
-    pub fn register_peer(&self, identifier: u32, peer: Arc<PeerConnection<OpType>>) {
-        self.peers.lock().unwrap().insert(identifier, peer);
+    pub async fn register_peer(&self, identifier: u32, peer: Arc<PeerConnection<OpType>>) {
+        // Hold lock throughout function to avoid sending messages twicey
+        let mut peers = self.peers.lock().await;
+
+        // First send all previous transactions / epochs
+        let num_epochs = self.ledger.num_epochs();
+        for i in 0..num_epochs {
+            let eid = i as EpochId;
+            let epoch = self.ledger.get_epoch(eid);
+            let msg = Message::SyncEpoch{ identifier: eid, epoch };
+
+            peer.send(&msg).await;
+        }
+
+        peers.insert(identifier, peer);
     }
 
-    pub fn unregister_peer(&self, identifier: u32) {
-        self.peers.lock().unwrap().remove(&identifier);
+    pub async fn unregister_peer(&self, identifier: u32) {
+        self.peers.lock().await.remove(&identifier);
     }
 
+    #[ allow(dead_code) ]
     pub fn num_epochs(&self) -> usize {
         self.ledger.num_epochs()
     }
 
+    #[ allow(dead_code) ]
     pub fn get_epoch(&self, identifier: EpochId) -> Epoch<OpType> {
         self.ledger.get_epoch(identifier)
     }
 
-    pub fn start_new_epoch(&self) {
-        let peers = self.peers.lock().unwrap().clone();
-
+    pub async fn start_new_epoch(&self) {
         let identifier = self.next_epoch_id.fetch_add(1, Ordering::SeqCst);
 
         let now = chrono::offset::Utc::now();
@@ -68,7 +81,10 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
 
         info!("Starting new blockchain epoch (id={} timestamp={})", identifier, timestamp);
 
+        // Lock peers before ledger
+        let peers = self.peers.lock().await;
         self.ledger.create_new_epoch(identifier, timestamp);
+        let peers = peers.clone();
 
         spawn(async move {
             let msg = Message::NewEpochStarted{ identifier, timestamp };
@@ -100,7 +116,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
 
         let ledger = self.ledger.clone();
         let latency = self.latency;
-        let peers = self.peers.lock().unwrap().clone();
+        let peers = self.peers.lock().await.clone();
 
         spawn(async move {
             delay_for(latency).await;

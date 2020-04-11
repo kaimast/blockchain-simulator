@@ -87,7 +87,7 @@ pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: A
     tokio::spawn(async move {
         loop {
             tokio::time::delay_for(epoch_length).await;
-            l2.start_new_epoch();
+            l2.start_new_epoch().await;
         }
     });
 
@@ -103,7 +103,7 @@ pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: A
                 let (c, read_socket) = PeerConnection::new(id, ledger.clone(), callback.clone(), socket);
 
                 let conn = Arc::new(c);
-                ledger.register_peer(id, conn.clone());
+                ledger.register_peer(id, conn.clone()).await;
 
                 spawn(async move {
                     conn.run(read_socket).await;
