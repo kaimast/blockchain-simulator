@@ -114,9 +114,11 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
             *last_tx = now;
         }
 
-        let ledger = self.ledger.clone();
         let latency = self.latency;
+
+        // Lock peers before ledger
         let peers = self.peers.lock().await.clone();
+        let ledger = self.ledger.clone();
 
         spawn(async move {
             delay_for(latency).await;
