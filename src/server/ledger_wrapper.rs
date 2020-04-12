@@ -117,15 +117,14 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
         let latency = self.latency;
 
         // Lock peers before ledger
-        let peers = self.peers.lock().await.clone();
-        let ledger = self.ledger.clone();
+        let peers = self.peers.lock().await;
+        self.ledger.insert(transaction.clone());
+        let peers = peers.clone();
 
         spawn(async move {
             delay_for(latency).await;
 
             trace!("Adding new transaction to the ledger");
-
-            ledger.insert(transaction.clone());
 
             let msg = Message::LedgerUpdate{ transaction };
             let mut futures = Vec::new();
