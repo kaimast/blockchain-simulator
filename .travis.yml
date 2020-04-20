@@ -2,10 +2,9 @@ os: linux
 dist: bionic
 language: rust
 rust:
-    - nightly
+    - beta
 
 script:
     - cargo test
     - bash ./scripts/install_test_bins.sh
-      # often broken in nightly
-      #- bash ./ci/clippy.sh
+    - bash ./ci/clippy.sh
