@@ -23,5 +23,15 @@ chrono = { version="0.4" }
 name = "blockchain_simulator"
 path = "src/lib.rs"
 
+[[bin]]
+name = "blockchain-sim-test-client"
+path = "src/bin/test_client.rs"
+required-features = ["tokio"]
+
+[[bin]]
+name = "blockchain-sim-test-server"
+path = "src/bin/test_server.rs"
+required-features = ["tokio", "server"]
+
 [features]
 server = ["clap", "tokio", "tokio-util"]

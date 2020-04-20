@@ -140,16 +140,14 @@ impl<OpType: OpTrait> Ledger<OpType> {
     }
 }
 
+#[ derive(Serialize, Debug, Clone, Deserialize) ]
+pub enum TestOperation {
+    Empty{}
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{generate_key_pair, to_account_id, Transaction, Ledger};
-
-    use serde::{Serialize, Deserialize};
-
-    #[ derive(Serialize, Debug, Clone, Deserialize) ]
-    enum TestOperation {
-        Empty{}
-    }
+    use crate::{generate_key_pair, to_account_id, Transaction, Ledger, TestOperation};
 
     #[test]
     fn size() {

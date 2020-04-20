@@ -6,5 +6,6 @@ rust:
 
 script:
     - cargo test
+    - bash ./scripts/install_test_bins.sh
       # often broken in nightly
       #- bash ./ci/clippy.sh
