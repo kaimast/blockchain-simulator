@@ -86,8 +86,8 @@ pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: A
 
     tokio::spawn(async move {
         loop {
-            tokio::time::delay_for(epoch_length).await;
             l2.start_new_epoch().await;
+            tokio::time::delay_for(epoch_length).await;
         }
     });
 

@@ -9,9 +9,9 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::net::ToSocketAddrs;
 
-use futures_util::StreamExt;
+use futures_util::{StreamExt, SinkExt};
 
-use blockchain_simulator::{DEFAULT_BLOCKCHAIN_PORT, generate_key_pair, to_account_id, Ledger, TestOperation};
+use blockchain_simulator::{DEFAULT_BLOCKCHAIN_PORT, generate_key_pair, to_account_id, Ledger, TestOperation, Transaction};
 
 use blockchain_simulator::protocol::Message;
 
@@ -82,8 +82,17 @@ fn main() {
 
         if mode == "send_transactions" {
             for _ in 0..NUM_TRANSACTIONS {
+                let transaction = Transaction::new(account_id, TestOperation::Empty{}, &private_key);
 
+                let request = Message::TransactionRequest{ transaction };
 
+                let data = bincode::serialize(&request).expect("Serialize message");
+                let mut sock = write_framed.lock().await;
+
+                match sock.send(data.into()).await {
+                    Ok(()) => {},
+                    Err(e) => { println!("Failed to write data to socket: {}", e) }
+                }
             }
 
         } else if mode == "count_transactions" {

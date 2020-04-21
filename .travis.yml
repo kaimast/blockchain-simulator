@@ -7,6 +7,7 @@ rust:
 script:
     - cargo test
     - bash ./scripts/install_test_bins.sh
+    - bash ./scripts/test.sh
 
     # broken on nightly
     # - bash ./ci/clippy.sh
