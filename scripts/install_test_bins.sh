@@ -1,3 +1,2 @@
 #! /bin/bash
-
-cargo install --path="." --features="tokio,server"
+cargo install --path="." --features="tokio,server,futures-util"

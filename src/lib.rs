@@ -1,5 +1,5 @@
 #![ feature(trait_alias) ]
-#![feature(map_first_last)]
+#![ feature(map_first_last) ]
 
 pub mod protocol;
 use protocol::EpochId;
@@ -102,6 +102,18 @@ impl<OpType: OpTrait> Ledger<OpType> {
         lock.clone()
     }
 
+    pub fn num_transactions(&self) -> usize {
+        let mut result = 0;
+        let epochs = self.epochs.read().unwrap();
+
+        for epoch in epochs.values() {
+            let epoch = epoch.lock().unwrap();
+            result += epoch.size();
+        }
+
+        result
+    }
+
     pub fn num_epochs(&self) -> usize {
         let epochs = self.epochs.read().unwrap();
         epochs.len()
@@ -197,5 +209,6 @@ mod tests {
  
         assert_eq!(copy.num_epochs(), 1);
         assert_eq!(ecopy.size(), 1);
+        assert_eq!(copy.num_transactions(), 1);
     }
 }

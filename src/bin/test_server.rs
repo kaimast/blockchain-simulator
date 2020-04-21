@@ -13,6 +13,7 @@ fn main() {
     let callback = Arc::new( NullCallback{} );
 
     rt.block_on(async move {
+        println!("Started blockchain test server");
         main_thread::<TestOperation>(callback).await;
     });
 }
