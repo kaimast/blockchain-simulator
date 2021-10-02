@@ -8,7 +8,7 @@ use ledger_wrapper::LedgerWrapper;
 use clap::{Arg, App};
 
 use tokio::net::TcpListener;
-use tokio::{spawn};
+use tokio::spawn;
 
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
@@ -79,7 +79,7 @@ pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: A
     info!("Listening for connections on {:?}", addr);
 
     let ledger = Arc::new( LedgerWrapper::new(throughput, latency) );
-    let mut listener = TcpListener::bind(&addr).await.expect("Failed to bind socket!");
+    let listener = TcpListener::bind(&addr).await.expect("Failed to bind socket!");
 
     let l2 = ledger.clone();
 
@@ -89,7 +89,7 @@ pub async fn main_thread<OpType: OpTrait+Serialize+DeserializeOwned>(callback: A
     tokio::spawn(async move {
         loop {
             l2.start_new_epoch().await;
-            tokio::time::delay_for(epoch_length).await;
+            tokio::time::sleep(epoch_length).await;
         }
     });
 

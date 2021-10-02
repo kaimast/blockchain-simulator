@@ -4,10 +4,9 @@ use blockchain_simulator::TestOperation;
 use std::sync::Arc;
 
 fn main() {
-    let mut rt = tokio::runtime::Builder::new()
+    let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
-        .threaded_scheduler()
         .build().expect("Failed to start worker threads");
 
     let callback = Arc::new( NullCallback{} );

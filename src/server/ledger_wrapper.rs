@@ -4,7 +4,7 @@ use std::collections::{HashMap};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tokio::spawn;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 use tokio::sync::Mutex;
 
 use crate::protocol::{EpochId, Message};
@@ -32,7 +32,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
         let ledger = Arc::new( Ledger::default() );
         let peers = Mutex::new( HashMap::new() );
 
-        let min_interval = Duration::from_secs_f64((1.0/throughput).into());
+        let min_interval = Duration::from_secs_f64(1.0/throughput);
         let latency = Duration::from_millis(latency_ms.into());
 
         let last_tx = Mutex::new( Instant::now() );
@@ -108,7 +108,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
             let diff = now.duration_since(*last_tx);
 
             if diff < self.min_interval {
-                delay_for(self.min_interval - diff).await;
+                sleep(self.min_interval - diff).await;
             }
 
             *last_tx = now;
@@ -122,7 +122,7 @@ impl<OpType: OpTrait+Serialize+DeserializeOwned> LedgerWrapper<OpType> {
         let peers = peers.clone();
 
         spawn(async move {
-            delay_for(latency).await;
+            sleep(latency).await;
 
             trace!("Adding new transaction to the ledger");
 
