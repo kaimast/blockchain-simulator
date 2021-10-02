@@ -1,0 +1,13 @@
+os: linux
+dist: bionic
+language: rust
+rust:
+    - nightly
+
+script:
+    - cargo test
+    - bash ./scripts/install_test_bins.sh
+    - bash ./scripts/test.sh
+
+    # broken on nightly
+    # - bash ./ci/clippy.sh
