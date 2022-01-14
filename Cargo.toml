@@ -18,7 +18,7 @@ chrono = { version="0.4" }
 tokio = { version="1", features=["net", "sync", "io-util", "time", "rt-multi-thread"], optional=true }
 tokio-util = { version="0.6", features=["codec"], optional=true }
 futures-util = { version="0.3", optional=true }
-clap = { version="^2", default-features=false, features=[ "suggestions" ], optional=true }
+clap = { version="3", default-features=false, features=["std", "suggestions" ], optional=true }
 
 [lib]
 name = "blockchain_simulator"
