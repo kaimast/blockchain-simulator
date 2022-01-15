@@ -1,5 +1,4 @@
 use tokio::net::TcpStream;
-use tokio::io::split;
 use tokio::sync::Mutex;
 
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -42,7 +41,7 @@ fn main() {
 
         let tstream = TcpStream::connect(addr).await.unwrap();
 
-        let (read_stream, write_stream) = split(tstream);
+        let (read_stream, write_stream) = tstream.into_split();
         let (private_key, public_key) = generate_key_pair();
 
         let account_id = to_account_id(&public_key);
