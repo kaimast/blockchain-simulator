@@ -1,11 +1,12 @@
-use rsa::PublicKey as PubKey;
+use rsa::PublicKeyParts;
+
 use rand::rngs::OsRng;
 
 use digest::Digest;
 use sha2::Sha512;
 
-pub type PublicKey = rsa::RSAPublicKey;
-pub type PrivateKey = rsa::RSAPrivateKey;
+pub type PublicKey = rsa::RsaPublicKey;
+pub type PrivateKey = rsa::RsaPrivateKey;
 
 // SHA-512 of the public key
 pub type AccountId = u64;

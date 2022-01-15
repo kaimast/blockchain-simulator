@@ -9,9 +9,10 @@ log = { version="0.4" }
 bincode = { version="^1" }
 futures = { version="0.3" }
 serde = { version="^1", features=["derive"] }
-rand = { version="0.7" }
+rand = { version="0.8", features=["getrandom"] }
 digest = { version="0.8" }
-rsa = { version="0.2", features=["serde1"] } #change to "serde" once RSA is updated
+rsa = { git="https://github.com/RustCrypto/RSA.git", features=["serde"] }
+#rsa =  { version="0.3", features=["serde"] }
 bytes = { version="1", features=["serde"] }
 sha2 = { version="0.8" }
 chrono = { version="0.4" }

@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use sha2::Sha512;
 use digest::Digest;
 
-use rsa::hash::Hashes;
+use rsa::hash::Hash;
 use rsa::padding::PaddingScheme;
 
 #[ derive(Serialize, Deserialize, Clone, Debug) ]
@@ -32,7 +32,7 @@ impl<Operation: Serialize+Debug> Transaction<Operation> {
         hasher.input(&data[..]);
         let hash = hasher.result();
 
-        let sig = sign_key.sign(PaddingScheme::PKCS1v15, Some(&Hashes::SHA2_512), &hash).expect("sign payload");
+        let sig = sign_key.sign(PaddingScheme::PKCS1v15Sign{hash: Some(Hash::SHA2_512)}, &hash).expect("sign payload");
 
         Self{ source, payload, signature: sig.into() }
     }
@@ -45,7 +45,7 @@ impl<Operation: Serialize+Debug> Transaction<Operation> {
         hasher.input(&data[..]);
         let hash = hasher.result();
 
-        let sig = sign_key.sign(PaddingScheme::PKCS1v15, Some(&Hashes::SHA2_512), &hash).expect("sign payload");
+        let sig = sign_key.sign(PaddingScheme::PKCS1v15Sign{hash: Some(Hash::SHA2_512)}, &hash).expect("sign payload");
 
         Self{ source, payload, signature: sig.into() }
     }
