@@ -1,5 +1,5 @@
-#![ feature(trait_alias) ]
-#![ feature(map_first_last) ]
+#![feature(trait_alias)]
+#![feature(map_first_last)]
 
 pub mod protocol;
 use protocol::EpochId;
@@ -7,28 +7,28 @@ use protocol::EpochId;
 mod transactions;
 pub use transactions::*;
 
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
 use std::sync::{Mutex, RwLock};
-use std::collections::{HashMap, BTreeMap};
 
-#[ cfg(feature="server") ]
+#[cfg(feature = "server")]
 pub mod server;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_BLOCKCHAIN_PORT: u16 = 8080;
 
 mod crypto_helper;
-pub use crypto_helper::{PublicKey, AccountId, PrivateKey, generate_key_pair, to_account_id};
+pub use crypto_helper::{generate_key_pair, to_account_id, AccountId, PrivateKey, PublicKey};
 
-pub trait OpTrait = Clone+Debug+Sync+Send+'static;
+pub trait OpTrait = Clone + Debug + Sync + Send + 'static;
 
 pub struct Identity {
     #[allow(dead_code)]
-    public_key: PublicKey
+    public_key: PublicKey,
 }
 
-#[ derive(Clone, Debug, Serialize, Deserialize) ]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Epoch<OpType: OpTrait> {
     timestamp: i64,
     transactions: Vec<Transaction<OpType>>,
@@ -36,7 +36,10 @@ pub struct Epoch<OpType: OpTrait> {
 
 impl<OpType: OpTrait> Epoch<OpType> {
     pub fn new(timestamp: i64) -> Self {
-        Self{ timestamp, transactions: Vec::new() }
+        Self {
+            timestamp,
+            transactions: Vec::new(),
+        }
     }
 
     pub fn size(&self) -> usize {
@@ -47,29 +50,31 @@ impl<OpType: OpTrait> Epoch<OpType> {
         &self.transactions
     }
 
-    pub fn get_timestamp(&self) -> i64 { self.timestamp }
+    pub fn get_timestamp(&self) -> i64 {
+        self.timestamp
+    }
 }
 
-type EpochMap<OpType> = BTreeMap< EpochId, Mutex<Epoch<OpType>> >;
+type EpochMap<OpType> = BTreeMap<EpochId, Mutex<Epoch<OpType>>>;
 
 pub struct Ledger<OpType: OpTrait> {
     #[allow(dead_code)]
     identities: Mutex<HashMap<AccountId, Identity>>,
-    epochs: RwLock<EpochMap<OpType>>
+    epochs: RwLock<EpochMap<OpType>>,
 }
 
 impl<OpType: OpTrait> Default for Ledger<OpType> {
     fn default() -> Self {
-        let identities = Mutex::new( HashMap::default() );
-        let epochs = RwLock::new( EpochMap::default() );
+        let identities = Mutex::new(HashMap::default());
+        let epochs = RwLock::new(EpochMap::default());
 
-        Self{ identities, epochs }
+        Self { identities, epochs }
     }
 }
 
 impl<OpType: OpTrait> Ledger<OpType> {
     pub fn insert(&self, tx: Transaction<OpType>) {
-     /*   if tx.op_type == OpType::CreateAccount {
+        /*   if tx.op_type == OpType::CreateAccount {
             self.identity_mgr.create_account(&tx);
         }*/
 
@@ -77,8 +82,10 @@ impl<OpType: OpTrait> Ledger<OpType> {
         let epochs = self.epochs.read().unwrap();
 
         let epoch = match epochs.last_key_value() {
-            Some((_,v)) => v,
-            None => { panic!("Cannot insert transaction before starting the first epoch!"); }
+            Some((_, v)) => v,
+            None => {
+                panic!("Cannot insert transaction before starting the first epoch!");
+            }
         };
 
         let mut lock = epoch.lock().unwrap();
@@ -88,7 +95,7 @@ impl<OpType: OpTrait> Ledger<OpType> {
     pub fn get_epoch_timestamp(&self, identifier: EpochId) -> i64 {
         let epochs = self.epochs.read().unwrap();
         let epoch = epochs.get(&identifier).unwrap();
-        
+
         let lock = epoch.lock().unwrap();
         lock.get_timestamp()
     }
@@ -121,7 +128,7 @@ impl<OpType: OpTrait> Ledger<OpType> {
 
     pub fn create_new_epoch(&self, identifier: EpochId, timestamp: i64) {
         let mut epochs = self.epochs.write().unwrap();
-        let result = epochs.insert(identifier, Mutex::new( Epoch::new(timestamp)) );
+        let result = epochs.insert(identifier, Mutex::new(Epoch::new(timestamp)));
 
         if result.is_some() {
             panic!("Epoch {} was created more than once", identifier);
@@ -135,7 +142,7 @@ impl<OpType: OpTrait> Ledger<OpType> {
             let expected = pos as EpochId;
 
             if expected != *key {
-                return true
+                return true;
             }
         }
 
@@ -159,14 +166,14 @@ impl<OpType: OpTrait> Ledger<OpType> {
     }
 }
 
-#[ derive(Serialize, Debug, Clone, Deserialize) ]
+#[derive(Serialize, Debug, Clone, Deserialize)]
 pub enum TestOperation {
-    Empty{}
+    Empty {},
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{generate_key_pair, to_account_id, Transaction, Ledger, TestOperation};
+    use crate::{generate_key_pair, to_account_id, Ledger, TestOperation, Transaction};
 
     #[test]
     fn size() {
@@ -177,7 +184,7 @@ mod tests {
         let (skey, pkey) = generate_key_pair();
         let account = to_account_id(&pkey);
 
-        let tx = Transaction::new(account, TestOperation::Empty{}, &skey);
+        let tx = Transaction::new(account, TestOperation::Empty {}, &skey);
         ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
@@ -206,7 +213,7 @@ mod tests {
         let (skey, pkey) = generate_key_pair();
         let account = to_account_id(&pkey);
 
-        let tx = Transaction::new(account, TestOperation::Empty{}, &skey);
+        let tx = Transaction::new(account, TestOperation::Empty {}, &skey);
         ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
@@ -214,10 +221,9 @@ mod tests {
         copy.synchronize_epoch(0, epoch);
 
         let ecopy = copy.get_epoch(0);
- 
+
         assert_eq!(copy.num_epochs(), 1);
         assert_eq!(ecopy.size(), 1);
         assert_eq!(copy.num_transactions(), 1);
-
     }
 }

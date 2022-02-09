@@ -21,7 +21,7 @@ pub fn generate_key_pair() -> (PrivateKey, PublicKey) {
 
 pub fn to_account_id(key: &PublicKey) -> AccountId {
     let mut hasher = Sha512::new();
-    
+
     let mut bytes = key.n().to_bytes_be();
     bytes.append(&mut key.e().to_bytes_be());
 
@@ -35,7 +35,5 @@ pub fn to_account_id(key: &PublicKey) -> AccountId {
         buffer[i] = output[i];
     }
 
-    unsafe {
-        std::mem::transmute::<[u8; 8], u64>(buffer)
-    }
+    unsafe { std::mem::transmute::<[u8; 8], u64>(buffer) }
 }
