@@ -15,7 +15,10 @@ sha2 = "0.10"
 tokio = { version="1", features=["net", "sync", "io-util", "time", "rt-multi-thread"], optional=true }
 tokio-util = { version="0.7", features=["codec"], optional=true }
 futures-util = { version="0.3", optional=true }
+log = { version="0.4", optional=true }
+futures = { version="0.3", optional=true }
 clap = { version="4", default-features=false, features=["std", "suggestions" ], optional=true }
+chrono = { version="0.4", optional=true }
 
 [lib]
 name = "blockchain_simulator"
@@ -32,4 +35,4 @@ path = "src/bin/test_server.rs"
 required-features = ["tokio", "server"]
 
 [features]
-server = ["clap", "tokio", "tokio-util"]
+server = ["clap", "tokio", "tokio-util", "log", "futures", "chrono"]
