@@ -1,4 +1,4 @@
-use rsa::PublicKeyParts;
+use rsa::traits::PublicKeyParts;
 
 use rand::rngs::OsRng;
 
@@ -25,9 +25,9 @@ pub fn to_account_id(key: &PublicKey) -> AccountId {
     let mut bytes = key.n().to_bytes_be();
     bytes.append(&mut key.e().to_bytes_be());
 
-    hasher.input(&bytes);
+    hasher.update(&bytes);
 
-    let output = hasher.result();
+    let output = hasher.finalize();
     let mut buffer: [u8; 8] = [0; 8];
 
     //FIXME get rid of this

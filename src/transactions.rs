@@ -1,13 +1,12 @@
-use crate::crypto_helper::{to_account_id, AccountId, PrivateKey, PublicKey};
-use bytes::Bytes;
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-use digest::Digest;
-use sha2::Sha512;
+use bytes::Bytes;
+use serde::{Deserialize, Serialize};
+use rsa::pss::SigningKey;
+use rsa::signature::{SignatureEncoding, RandomizedSigner};
+use sha2::{Digest, Sha256, Sha512};
 
-use rsa::hash::Hash;
-use rsa::padding::PaddingScheme;
+use crate::crypto_helper::{to_account_id, AccountId, PrivateKey, PublicKey};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TxPayload<OpType> {
@@ -23,52 +22,42 @@ pub struct Transaction<OpType> {
 }
 
 impl<Operation: Serialize + Debug> Transaction<Operation> {
-    pub fn new_create_account(public_key: PublicKey, sign_key: &PrivateKey) -> Self {
+    pub fn new_create_account(public_key: PublicKey, private_key: PrivateKey) -> Self {
         let source = to_account_id(&public_key);
         let payload = TxPayload::CreateAccount { public_key };
         let data = bincode::serialize(&payload).unwrap();
 
         let mut hasher = Sha512::new();
-        hasher.input(&data[..]);
-        let hash = hasher.result();
+        hasher.update(&data[..]);
+        let hash = hasher.finalize();
 
-        let sig = sign_key
-            .sign(
-                PaddingScheme::PKCS1v15Sign {
-                    hash: Some(Hash::SHA2_512),
-                },
-                &hash,
-            )
-            .expect("sign payload");
+        let mut rng = rand::thread_rng();
+        let signing_key = SigningKey::<Sha256>::new(private_key);
+        let sig = signing_key.sign_with_rng(&mut rng, &hash);
 
         Self {
             source,
             payload,
-            signature: sig.into(),
+            signature: sig.to_vec().into(),
         }
     }
 
-    pub fn new(source: AccountId, operation: Operation, sign_key: &PrivateKey) -> Self {
+    pub fn new(source: AccountId, operation: Operation, private_key: PrivateKey) -> Self {
         let payload = TxPayload::Operation { operation };
         let data = bincode::serialize(&payload).unwrap();
 
         let mut hasher = Sha512::new();
-        hasher.input(&data[..]);
-        let hash = hasher.result();
+        hasher.update(&data[..]);
+        let hash = hasher.finalize();
 
-        let sig = sign_key
-            .sign(
-                PaddingScheme::PKCS1v15Sign {
-                    hash: Some(Hash::SHA2_512),
-                },
-                &hash,
-            )
-            .expect("sign payload");
+        let mut rng = rand::thread_rng();
+        let signing_key = SigningKey::<Sha256>::new(private_key);
+        let sig = signing_key.sign_with_rng(&mut rng, &hash);
 
         Self {
             source,
             payload,
-            signature: sig.into(),
+            signature: sig.to_vec().into(),
         }
     }
 

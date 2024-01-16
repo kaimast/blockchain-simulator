@@ -1,5 +1,4 @@
 #![feature(trait_alias)]
-#![feature(map_first_last)]
 
 pub mod protocol;
 use protocol::EpochId;
