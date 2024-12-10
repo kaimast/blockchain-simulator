@@ -39,7 +39,7 @@ pub async fn main_thread<OpType: OpTrait + Serialize + DeserializeOwned>(
         .about("Simulates a blockchain network using a single process")
         .arg(
             Arg::new("listen")
-                .long("listen")
+                .long("listen-address")
                 .short('l')
                 .help("The address to bind to")
                 .default_value("0.0.0.0"),
