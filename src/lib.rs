@@ -183,7 +183,7 @@ mod tests {
         let (skey, pkey) = generate_key_pair();
         let account = to_account_id(&pkey);
 
-        let tx = Transaction::new(account, TestOperation::Empty {}, &skey);
+        let tx = Transaction::new(account, TestOperation::Empty {}, skey);
         ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
@@ -212,7 +212,7 @@ mod tests {
         let (skey, pkey) = generate_key_pair();
         let account = to_account_id(&pkey);
 
-        let tx = Transaction::new(account, TestOperation::Empty {}, &skey);
+        let tx = Transaction::new(account, TestOperation::Empty {}, skey);
         ledger.create_new_epoch(0, 5);
         ledger.insert(tx);
 
