@@ -5,7 +5,7 @@ pub use connection::{Callback, NullCallback};
 mod ledger_wrapper;
 use ledger_wrapper::LedgerWrapper;
 
-use clap::{Arg, Command};
+use clap::Parser;
 
 use tokio::net::TcpListener;
 use tokio::spawn;
@@ -30,70 +30,56 @@ fn parse_address(addr_str: &str, default_port: u16) -> SocketAddr {
     }
 }
 
+#[derive(Parser)]
+#[clap(about = "Simulates a blockchain network using a single process")]
+struct Args {
+    #[clap(
+        long,
+        short = 'l',
+        help = "The address to listen for client connections",
+        default_value = "0.0.0.0"
+    )]
+    listen_address: String,
+    #[clap(
+        long,
+        help = "The maximum throughput of the chain (in tx/s)",
+        default_value_t = 1000.0
+    )]
+    throughput: f64,
+    #[clap(
+        long,
+        help = "The transaction confirmation delay (in ms)",
+        default_value_t = 100
+    )]
+    latency: u32,
+    #[clap(long, help = "Length of an epoch (in s)", default_value_t = 60)]
+    epoch_length: u64,
+}
+
 pub async fn main_thread<OpType: OpTrait + Serialize + DeserializeOwned>(
     callback: Arc<dyn Callback<OpType>>,
 ) {
-    let arg_matches = Command::new("blockchain-sim")
-        .author("Kai Mast <kaimast@cs.cornell.edu>")
-        .version("0.1")
-        .about("Simulates a blockchain network using a single process")
-        .arg(
-            Arg::new("listen")
-                .long("listen-address")
-                .short('l')
-                .help("The address to bind to")
-                .default_value("0.0.0.0"),
-        )
-        .arg(
-            Arg::new("throughput")
-                .long("throughput")
-                .default_value("1000.0")
-                .help("The maximum throughput of the chain (in tx/s)"),
-        )
-        .arg(
-            Arg::new("latency")
-                .long("latency")
-                .default_value("100")
-                .help("The transaction confirmation delay (in ms)"),
-        )
-        .arg(
-            Arg::new("epoch_length")
-                .long("epoch_length")
-                .default_value("60")
-                .help("Length of an epoch (in s)"),
-        )
-        .get_matches();
-
-    let throughput: f64 = *arg_matches
-        .get_one("throughput")
-        .expect("Failed to parse command line argument");
-
-    if throughput == 0.0 {
-        panic!("Throughput cannot be 0");
+    let args = Args::parse();
+    if args.throughput <= 0.0 {
+        panic!("Throughput cannot be <=0");
     }
-
-    let latency: u32 = *arg_matches
-        .get_one("latency")
-        .expect("Failed to parse command line argument");
 
     info!(
         "Ledger throughput set to {}tx/s and latency set to {}ms",
-        throughput, latency
+        args.throughput, args.latency
     );
 
-    let addr_str: &String = arg_matches.get_one("listen").unwrap();
-    let addr = parse_address(addr_str, DEFAULT_BLOCKCHAIN_PORT);
-    info!("Listening for connections on {:?}", addr);
+    let addr = parse_address(&args.listen_address, DEFAULT_BLOCKCHAIN_PORT);
+    info!("Listening for connections on {addr:?}");
 
-    let ledger = Arc::new(LedgerWrapper::new(throughput, latency));
+    let ledger = Arc::new(LedgerWrapper::new(args.throughput, args.latency));
     let listener = TcpListener::bind(&addr)
         .await
         .expect("Failed to bind socket!");
 
     let l2 = ledger.clone();
 
-    let elength_arg: u64 = *arg_matches.get_one("epoch_length").unwrap();
-    let epoch_length = Duration::from_secs(elength_arg);
+    let epoch_length = Duration::from_secs(args.epoch_length);
 
     tokio::spawn(async move {
         loop {
